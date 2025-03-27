@@ -16,7 +16,7 @@ export const createAccessToken = (user: { id: string; name: string; email: strin
   return jwt.sign(
     { id: user.id, name: user.name, email: user.email },
     process.env.ACCESS_TOKEN_SECRET as string,
-    { expiresIn: process.env.ACCESS_TOKEN_EXPIRY! }
+    { expiresIn: process.env.ACCESS_TOKEN_EXPIRY as string }
   );
 };
 
@@ -27,7 +27,7 @@ export const createRefreshToken = (userId: string): string => {
   return jwt.sign(
     { id: userId },
     process.env.REFRESH_TOKEN_SECRET as string,
-    { expiresIn: process.env.REFRESH_TOKEN_EXPIRY || "10d" }
+    { expiresIn: process.env.REFRESH_TOKEN_EXPIRY as string || "10d" }
   );
 };
 
@@ -37,7 +37,7 @@ export const generateOtpToken = (otp: string, userId:string): string => {
   return jwt.sign(
     { otp, id: userId },
     process.env.OTP_SECRET as string,
-    { expiresIn: process.env.OTP_EXPIRY }
+    { expiresIn: process.env.OTP_EXPAIRY as string }
   );
 };
 

@@ -8,22 +8,48 @@ datasource db {
 }
 
 model User {
-  id              String   @id @default(uuid())
-  name            String   @db.VarChar(50)
-  email           String   @unique @db.VarChar(100)
-  password        String   @db.VarChar(255)
-  otp             String?   @db.VarChar(255)
+  id              String    @id @default(uuid())
+  fullName        String    @db.VarChar(50)
+  userName        String    @unique @db.VarChar(20)
+  email           String    @unique @db.VarChar(100)
+  password        String    @db.VarChar(255)
+  otp             String    @db.VarChar(255)
   avatar          Avatar?
-  refreshToken    String   @db.VarChar(500)
+  refreshToken    String    @db.VarChar(500)
   isEmailVerified Boolean?  @default(false)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  credits         Int       @default(10)
+  Projects        Project[]
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 }
 
 model Avatar {
   id        String @id @default(uuid())
   url       String
   public_id String
-  userId   String @unique
-  user      User?   @relation(fields: [userId],references: [id])
+  userId    String @unique
+  user      User?  @relation(fields: [userId], references: [id])
+}
+
+model Project {
+  id          String  @id @default(uuid())
+  projectName String  @db.VarChar(255)
+  prompt      String  @db.VarChar(255)
+  isShared    Boolean @default(false)
+  circuit     Circuit?
+  User        User?   @relation(fields: [userId], references: [id])
+  userId      String?
+}
+
+
+model Circuit{
+id          String  @id @default(uuid())
+circuitName String @db.VarChar(100)
+projectId String @unique
+project  Project @relation(fields: [projectId],references: [id])
+node Json
+edges Json 
+suggestions String @db.VarChar(500)
+explaination String @db.VarChar(500)
+
 }

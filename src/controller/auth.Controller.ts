@@ -56,13 +56,18 @@ const registerUser = asyncHandler(async function (
   res: Response,
   next: NextFunction
 ) {
-  const { email, password, name, bio } = registerSchema.parse(req.body);
+  const { email, password, fullName,userName } = registerSchema.parse(req.body);
 
-  const existingUser = await prisma.user.findUnique({
-    where: { email: email },
+  const existingUser = await prisma.user.findFirst({
+    where: {
+      OR: [
+        { email: email },
+        { userName: userName },
+      ],
+    },
   });
   if (existingUser) {
-    return next(new ApiError(400, "User already exists"));
+    return next(new ApiError(400, "Email or Username already exists"));
   }
 
   let uploadAvatar = {
@@ -86,14 +91,17 @@ const registerUser = asyncHandler(async function (
   }
   const user = await prisma.user.create({
     data: {
-      name: name,
+      fullName: fullName,
+      userName:userName,
       email: email,
       password: password,
       otp: generateOtp().toString(),
-      avatar: JSON.stringify({
-        url: uploadAvatar.url,
-        public_id: uploadAvatar.public_id,
-      }),
+      avatar: {
+        create: {
+          url: uploadAvatar.url,
+          public_id: uploadAvatar.public_id,
+        },
+      },
       refreshToken: "",
     },
   });
@@ -103,19 +111,22 @@ const registerUser = asyncHandler(async function (
   await sendEmail({
     email: user.email,
     subject: "Email Verifiaction",
-    MailgenContent: SendEmailVerification(user.name, user.otp),
+    MailgenContent: SendEmailVerification(user.fullName, user.otp),
   });
 
   const createdUser = await prisma.user.findUnique({
     where: { id: user.id },
     select: {
       id: true,
-      name: true,
+      fullName: true,
+      userName:true,
       email: true,
       isEmailVerified: true,
       createdAt: true,
       updatedAt: true,
       avatar: true,
+      Projects:true,
+      credits:true,
     },
   });
   if (!createdUser)
@@ -209,6 +220,18 @@ const verifyEmail = asyncHandler(
         isEmailVerified: true,
         otp: undefined,
       },
+      select: {
+        id: true,
+        fullName: true,
+        userName:true,
+        email: true,
+        isEmailVerified: true,
+        createdAt: true,
+        updatedAt: true,
+        avatar: true,
+        Projects:true,
+        credits:true,
+      },
     });
 
     const options = {
@@ -242,11 +265,11 @@ const resendEmail = asyncHandler(
       otp: generateOtp().toString(),
     }
    })
-    const token = await  generateOtpToken({email:newUser.name,id:newUser.id});
+    const token =  generateOtpToken(newUser.otp,newUser.id);
     await sendEmail({
       email: user.email,
       subject: "Email Verification",
-      MailgenContent: SendEmailVerification(newUser.name, newUser.otp),
+      MailgenContent: SendEmailVerification(newUser.fullName, newUser.otp),
     });
 
     const options = {
@@ -268,11 +291,16 @@ const loginUser = asyncHandler(async function (
   res: Response,
   next: NextFunction
 ) {
-  const { email, password } = signinSchema.parse(req.body);
-
-  const user=await prisma.user.findUnique({
-    where:{email:email}
-  })
+  const { credential, password } = signinSchema.parse(req.body);
+  const user = await prisma.user.findFirst({
+    where: {
+      OR: [
+        { email: credential }, // If credential is an email, it will match this
+        { userName: credential }, // If credential is a username, it will match this
+      ],
+    },
+  });
+  
   if (!user) {
     return next(new ApiError(400, "Invalid Crendeitals"));
   }
@@ -291,12 +319,15 @@ const loginUser = asyncHandler(async function (
     where:{id:user.id},
     select:{
       id: true,
-      name: true,
+      fullName: true,
+      userName:true,
       email: true,
       isEmailVerified: true,
       createdAt: true,
       updatedAt: true,
       avatar: true,
+      Projects:true,
+      credits:true,
     }
   })
   if (!logedInUser) {
@@ -366,7 +397,7 @@ const forgotPassword = asyncHandler(
     sendEmail({
       email: user.email,
       subject: "Email verification",
-      MailgenContent: SendEmailVerification(user.name, user.otp),
+      MailgenContent: SendEmailVerification(user.fullName, user.otp),
     });
 
     const option = {
@@ -420,7 +451,7 @@ const verifyForgotPasswordOtp = asyncHandler(
       },
       process.env.OTP_SECRET as string,
       {
-        expiresIn: process.env.OTP_EXPAIRY,
+        expiresIn: process.env.OTP_EXPAIRY as string,
       }
     );
     const options = {
@@ -456,7 +487,7 @@ const resetPassword = asyncHandler(
     if (!user) {
       return next(new ApiError(400, "Unable to changee password"));
     }
-     =await prisma.user.update({
+     await prisma.user.update({
          where:{id:user.id},
          data:{
           password:password
@@ -559,12 +590,14 @@ const userData = asyncHandler(
       where:{email: (req.user as { email: string }).email},
       select:{
         id: true,
-      name: true,
+      fullName: true,
       email: true,
       isEmailVerified: true,
       createdAt: true,
       updatedAt: true,
       avatar: true,
+      Projects:true,
+      credits:true
       }
     })
  

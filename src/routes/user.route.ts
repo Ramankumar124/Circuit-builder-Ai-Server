@@ -10,8 +10,8 @@ import {
   userData,
   verifyEmail,
   verifyForgotPasswordOtp,
-} from "../controller/auth.Controller.js";
-import { jwtVerify } from "../middleware/verify.middleware.js";
+} from "../controller/auth.Controller";
+import { jwtVerify } from "../middleware/verify.middleware";
 import { Router } from "express";
 
 const router = Router();
