@@ -9,6 +9,9 @@ import morgan from "morgan";
 import logger from "./utils/logger";
 import { errorHandler } from "./middleware/ErrorHandler.middleware";
 import { authRoutes } from "./routes/user.route";
+import { projectRoutes } from "./routes/project.routes";
+import { ShareRoutes } from "./routes/share.routes.";
+import { circuitRoutes } from "./routes/circuit.routes";
 
 const app: Express = express();
 
@@ -47,6 +50,9 @@ app.use(
   })
 );
 app.use("/api/v1/auth", authRoutes);
+app.use("/api/v1/project",projectRoutes);
+app.use("/api/v1/share",ShareRoutes);
+app.use("/api/v1/circuit",circuitRoutes);
 app.use(errorHandler);
 
 export default app;

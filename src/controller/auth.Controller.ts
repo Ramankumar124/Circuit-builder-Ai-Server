@@ -24,7 +24,6 @@ import {
   generateOtpToken,
 } from "../service/user.service";
 
-
 interface UserDataRequest extends Request {
   user?: { email: string };
 }
@@ -56,16 +55,17 @@ const registerUser = asyncHandler(async function (
   res: Response,
   next: NextFunction
 ) {
-  const { email, password, fullName,userName } = registerSchema.parse(req.body);
+  const { email, password, fullName, userName } = registerSchema.parse(
+    req.body
+  );
+  
 
   const existingUser = await prisma.user.findFirst({
     where: {
-      OR: [
-        { email: email },
-        { userName: userName },
-      ],
+      OR: [{ email: email }, { userName: userName }],
     },
   });
+
   if (existingUser) {
     return next(new ApiError(400, "Email or Username already exists"));
   }
@@ -85,16 +85,17 @@ const registerUser = asyncHandler(async function (
 
     uploadAvatar.public_id = data?.public_id!;
     uploadAvatar.url = data?.url!;
+
     if (!uploadAvatar) {
       return next(new ApiError(400, "avatar upload failed"));
     }
   }
   const user = await prisma.user.create({
     data: {
-      fullName: fullName,
-      userName:userName,
-      email: email,
-      password: password,
+      fullName,
+      userName,
+      email,
+      password,
       otp: generateOtp().toString(),
       avatar: {
         create: {
@@ -105,6 +106,7 @@ const registerUser = asyncHandler(async function (
       refreshToken: "",
     },
   });
+  if (!user) console.log("unable to create user", user);
 
   const token = await generateOtpToken(user.otp, user.id);
 
@@ -119,14 +121,14 @@ const registerUser = asyncHandler(async function (
     select: {
       id: true,
       fullName: true,
-      userName:true,
+      userName: true,
       email: true,
       isEmailVerified: true,
       createdAt: true,
       updatedAt: true,
       avatar: true,
-      Projects:true,
-      credits:true,
+      Projects: true,
+      credits: true,
     },
   });
   if (!createdUser)
@@ -136,7 +138,6 @@ const registerUser = asyncHandler(async function (
     httpOnly: true,
     secure: true,
     sameSite: "none" as const,
-    maxAge: 1000 * 60 * 60,
   };
 
   res
@@ -209,7 +210,12 @@ const verifyEmail = asyncHandler(
     if (decodedToken?.otp !== otp) {
       return next(new ApiError(401, "invalid otp"));
     }
-    const user = await prisma.user.findUnique(decodedToken.id);
+
+  
+    const user = await prisma.user.findUnique({
+      where:{id:decodedToken.id}
+    })
+     
     if (!user) {
       return next(new ApiError(400, "invalid otp"));
     }
@@ -218,19 +224,19 @@ const verifyEmail = asyncHandler(
       where: { id: user.id },
       data: {
         isEmailVerified: true,
-        otp: undefined,
+        otp:"",
       },
       select: {
         id: true,
         fullName: true,
-        userName:true,
+        userName: true,
         email: true,
         isEmailVerified: true,
         createdAt: true,
         updatedAt: true,
         avatar: true,
-        Projects:true,
-        credits:true,
+        Projects: true,
+        credits: true,
       },
     });
 
@@ -258,14 +264,14 @@ const resendEmail = asyncHandler(
     if (user.isEmailVerified) {
       return next(new ApiError(400, "Email already verified"));
     }
-    
-   const newUser=await prisma.user.update({
-    where:{id:user.id},
-    data:{
-      otp: generateOtp().toString(),
-    }
-   })
-    const token =  generateOtpToken(newUser.otp,newUser.id);
+
+    const newUser = await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        otp: generateOtp().toString(),
+      },
+    });
+    const token = generateOtpToken(newUser.otp, newUser.id);
     await sendEmail({
       email: user.email,
       subject: "Email Verification",
@@ -300,11 +306,11 @@ const loginUser = asyncHandler(async function (
       ],
     },
   });
-  
+
   if (!user) {
     return next(new ApiError(400, "Invalid Crendeitals"));
   }
-  const isMatchPassword = await comparePassword(password,user.password);
+  const isMatchPassword = await comparePassword(password, user.password);
 
   if (!isMatchPassword) {
     return next(new ApiError(400, "invalid credentials"));
@@ -314,22 +320,22 @@ const loginUser = asyncHandler(async function (
     user.id
   );
 
-
-  const logedInUser=await prisma.user.findUnique({
-    where:{id:user.id},
-    select:{
+  const logedInUser = await prisma.user.findUnique({
+    where: { id: user.id },
+    select: {
       id: true,
       fullName: true,
-      userName:true,
+      userName: true,
       email: true,
       isEmailVerified: true,
       createdAt: true,
       updatedAt: true,
       avatar: true,
-      Projects:true,
-      credits:true,
-    }
-  })
+      Projects: true,
+      credits: true,
+      otp:true
+    },
+  });
   if (!logedInUser) {
     return next(new ApiError(400, "Something went wrong while signing user"));
   }
@@ -349,15 +355,14 @@ const loginUser = asyncHandler(async function (
 const logoutUser = asyncHandler(
   async (req: Request, res: Response, next: NextFunction) => {
     await prisma.user.update({
-      where:{
+      where: {
         //@ts-ignore
-        id:req.user?.id
+        id: req.user?.id,
       },
-      data:{
-        refreshToken:""
-      }
-    })
-    
+      data: {
+        refreshToken: "",
+      },
+    });
 
     const options = {
       httpOnly: true,
@@ -376,28 +381,33 @@ const logoutUser = asyncHandler(
 const forgotPassword = asyncHandler(
   async (req: Request, res: Response, next: NextFunction) => {
     const { email } = forgotPasswordSchema.parse(req.body);
-    const user=await prisma.user.findUnique(({
-      where:{email:email}
-    }))
+    const user = await prisma.user.findUnique({
+      where: { email: email },
+    });
 
     if (!user) {
       return next(new ApiError(400, "check your email"));
     }
- 
-    const newUser= await prisma.user.update(({
-      where:{email:email},
-      data:{
-        otp:generateOtp().toString()
-      }
-    }))
+
+    const newUser = await prisma.user.update({
+      where: { email: email },
+      data: {
+      otp: generateOtp().toString(),
+      },
+      select: {
+      id: true,
+      fullName: true,
+      email: true,
+      otp: true,
+      },
+    });
 
     const token = await generateOtpToken(newUser.otp, newUser.id);
-   
 
     sendEmail({
       email: user.email,
       subject: "Email verification",
-      MailgenContent: SendEmailVerification(user.fullName, user.otp),
+      MailgenContent: SendEmailVerification(newUser.fullName, newUser.otp),
     });
 
     const option = {
@@ -429,20 +439,19 @@ const verifyForgotPasswordOtp = asyncHandler(
     if (decodedToken?.otp !== otp) {
       return next(new ApiError(401, "invalid otp"));
     }
-    const user=await prisma.user.findUnique({
-          //@ts-ignore
-      where:{id:decodedToken.id},
-
-    })
+    const user = await prisma.user.findUnique({
+      //@ts-ignore
+      where: { id: decodedToken.id },
+    });
     if (!user) {
       return next(new ApiError(400, "invalid otp"));
     }
-   const newUser=await prisma.user.update({
-    where:{id:user.id},
-    data:{
-      otp:undefined
-    }
-   })
+    const newUser = await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        otp: undefined,
+      },
+    });
 
     //@ts-ignore
     const changPasswordToken = await jwt.sign(
@@ -479,20 +488,20 @@ const resetPassword = asyncHandler(
       token,
       process.env.OTP_SECRET as string
     );
-  
-    const user=await prisma.user.findUnique({
+
+    const user = await prisma.user.findUnique({
       //@ts-ignore
-      where:{id:decodedToken.id}
-    })
+      where: { id: decodedToken.id },
+    });
     if (!user) {
       return next(new ApiError(400, "Unable to changee password"));
     }
-     await prisma.user.update({
-         where:{id:user.id},
-         data:{
-          password:password
-         }
-     })
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        password: password,
+      },
+    });
 
     const options = {
       httpOnly: true,
@@ -586,21 +595,21 @@ const resetPassword = asyncHandler(
 // );
 const userData = asyncHandler(
   async (req: UserDataRequest, res: Response, next: NextFunction) => {
-    const user=await prisma.user.findUnique({
-      where:{email: (req.user as { email: string }).email},
-      select:{
+    
+    const user = await prisma.user.findUnique({
+      where: { email: (req.user as { email: string }).email },
+      select: {
         id: true,
-      fullName: true,
-      email: true,
-      isEmailVerified: true,
-      createdAt: true,
-      updatedAt: true,
-      avatar: true,
-      Projects:true,
-      credits:true
-      }
-    })
- 
+        fullName: true,
+        email: true,
+        isEmailVerified: true,
+        createdAt: true,
+        updatedAt: true,
+        avatar: true,
+        Projects: true,
+        credits: true,
+      },
+    });
 
     if (!user) {
       return next(new ApiError(404, "User Not found"));

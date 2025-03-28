@@ -12,7 +12,7 @@ interface Imail{
     const mailiGenerator=new Mailgen({
         theme:"default",
         product:{
-        name:"WaveChat",
+        name:"Circuit Builder Ai",
         link: "http://localhost:5173/",
         },
     })
@@ -32,7 +32,7 @@ interface Imail{
 
 
 const EmailOption={
-    from:`WaveChat ${process.env.EMAIL_USER}`,
+    from:`CircuitBuilderAi ${process.env.EMAIL_USER}`,
     to:email,
     subject:subject,
     text:emailText,

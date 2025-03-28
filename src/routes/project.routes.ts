@@ -1,7 +1,10 @@
-import { createProject, getAllProjects, updateProject } from "../service/project/project.js";
+import { createProject, deleteProject, getAllProjects, updateProject } from "../controller/project.controller";
 import { Router } from "express";
 
-export const projectRoute = Router();
-projectRoute.post("/project", createProject);
-projectRoute.get("/projects/:id", getAllProjects);
-projectRoute.put("/project/:id", updateProject);
+ const router = Router();
+router.route("/create-project").post(createProject);
+router.route("/get-All-project").get(getAllProjects);
+router.route("/update-project").patch(updateProject);
+router.route("/delete-project/:id").delete(deleteProject);
+
+export {router as projectRoutes}

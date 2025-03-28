@@ -1,11 +1,8 @@
-import { createCircuit, getAllCircuits, saveProjectCircuit, enhancePrompt } from "../service/circuit/circuit.js";
+import { createCircuit, enhancePrompt } from "../controller/circuit.controller";
 import { Router } from "express";
-import { protectRoute } from "../middleware/protectRoute.js";
 
+const router = Router();
 
-export const circuitRoute = Router();
-
-circuitRoute.post("/circuit", createCircuit);
-circuitRoute.get("/circuits/:projectId", protectRoute, getAllCircuits);
-circuitRoute.post("/save-circuit", protectRoute, saveProjectCircuit);
-circuitRoute.post("/enhance-prompt", enhancePrompt)
+router.route("/create-circuit").post(createCircuit);
+router.route("/enhance-prompt").post(enhancePrompt)
+export {router as circuitRoutes}

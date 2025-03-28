@@ -1,8 +1,11 @@
-import { createShareLink, getLink } from "../service/share/share.js";
+
 import { Router } from "express";
-import { protectRoute } from "../middleware/protectRoute.js"
+import { createShareLink, getSharedProjectData } from "../controller/share.controller";
 
-export const shareRouter = Router();
 
-shareRouter.post("/share", protectRoute, createShareLink)
-shareRouter.get("/share/:shareId", getLink)
+ const router  = Router();
+
+router.route("/create-share").get(createShareLink)
+router.route("/:shareId").get(getSharedProjectData)
+
+export {router as ShareRoutes}

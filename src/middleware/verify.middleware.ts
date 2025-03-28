@@ -1,6 +1,7 @@
 import jwt from "jsonwebtoken";
 import { NextFunction, Request, Response } from "express";
 import { ApiError } from "../utils/ApiError";
+import prisma from "../database/prismaClient"
 // import User from "../models/user.model";
 
 export async function jwtVerify(
@@ -10,7 +11,6 @@ export async function jwtVerify(
 ) {
   try {
     const token = await req?.cookies?.accessToken;
-    console.log(req.cookies);
 
     if (!token) {
       return next(new ApiError(401, "Authentication token is missing"));
@@ -24,10 +24,17 @@ export async function jwtVerify(
       return next(new ApiError(401, "unauthorized token"));
     }
 
-    //@ts-ignore
-    const user = await User.findById(decodedToken?._id).select(
-      "-password -refreshToken -otp"
-    );
+    const user= await prisma.user.findUnique({
+      //@ts-ignore
+      where:{id:decodedToken?.id},
+      select:{
+        id:true,
+        email:true,
+        fullName:true,
+        userName:true
+      }
+    })
+    
     if (!user) {
       return next(new ApiError(401, "Invalid Access Token"));
     }

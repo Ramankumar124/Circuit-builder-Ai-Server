@@ -1,51 +1,76 @@
-import Share from "../../model/share.js";
-import Circuit from "../../model/circuit.js";
-import { properties } from "../../config/properties.js";
-import { handleError } from "../../util/handleError.js"
+import { asyncHandler } from "../utils/Asynchandler";
+import { NextFunction, Request, Response } from "express";
+import prisma from "../database/prismaClient";
+import { ApiError } from "../utils/ApiError";
+import { projectShareSchema } from "../schema/projectSchema";
+import { ApiResponse } from "../utils/ApiResponse";
 
-export const createShareLink = async (req, res) => {
-  try {
-    const { circuitId } = req.body;
-    const circuit = await Circuit.findById(circuitId);
-    if (!circuit) {
-      return res.status(404).send({ message: "Circuit not found" });
-    }
-
-    const existingShare = await Share.findOne({ circuitId });
-    if (existingShare) {
-      return res.send({ shareableLink: `https://${properties?.FRONTEND_URL}/shared/${existingShare._id}` });
-    }
-
-    const newShare = new Share({
-      isShare: true,
-      circuitId,
+export const createShareLink = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const projectId = projectShareSchema.parse(req.body);
+    const project = await prisma.project.findUnique({
+      where: { id: projectId },
     });
-    await newShare.save();
 
-    return res.send({ shareableLink: `https://${properties?.FRONTEND_URL}/shared/${newShare._id}` });
+    if (!project) {
+      return next(new ApiError(404, "Project not found"));
+    }
 
-  } catch (error) {
-    handleError(error, res);
+    const existingShare = await prisma.share.findFirst({
+      where: {
+        projectId: projectId,
+        isShared: true,
+      },
+    });
+    if (existingShare) {
+      return res.send({
+        shareableLink: `http://${process.env?.FRONTEND_URL}/shared/${existingShare.id}`,
+      });
+    }
+
+    const newShare = await prisma.share.create({
+      data: {
+        isShared: true,
+        projectId,
+      },
+    });
+
+    return res
+      .status(201)
+      .json(
+        new ApiResponse(
+          201,
+          `https://${process.env?.FRONTEND_URL}/shared/${newShare.id}`,
+          "share link created"
+        )
+      );
   }
-};
+);
 
-export const getLink = async (req, res) => {
-  try {
+export const getSharedProjectData = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
     const { shareId } = req.params;
 
-    const share = await Share.findById(shareId).populate("circuitId");
+    const share = await prisma.share.findUnique({
+      where: { id: shareId },
+      include: {
+        project: {
+          include: {
+            circuit: true,
+            User: true,
+          },
+        },
+      },
+    });
 
     if (!share) {
-      return res.status(400).send({ message: "Invalid link" });
+      return next(new ApiError(400, "Invalid Link"));
     }
 
-    if (!share.circuitId) {
-      return res.status(400).send({ message: "Circuit not found" });
+    if (!share.projectId) {
+      return next(new ApiError(404, "project not found"));
     }
 
-    return res.status(200).send({ data: share.circuitId });
-
-  } catch (error) {
-    handleError(error, res);
+    res.status(200).json(new ApiResponse(200, share, "shared project data"));
   }
-};
+);

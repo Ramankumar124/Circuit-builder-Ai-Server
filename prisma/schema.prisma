@@ -32,24 +32,29 @@ model Avatar {
 }
 
 model Project {
-  id          String  @id @default(uuid())
-  projectName String  @db.VarChar(255)
-  prompt      String  @db.VarChar(255)
-  isShared    Boolean @default(false)
+  id          String   @id @default(uuid())
+  projectName String   @db.VarChar(255)
+  prompt      String   @db.VarChar(255)
   circuit     Circuit?
-  User        User?   @relation(fields: [userId], references: [id])
+  User        User?    @relation(fields: [userId], references: [id])
   userId      String?
+  Share       Share[]
 }
 
+model Share {
+  id        String  @id @default(uuid())
+  isShared  Boolean @default(false)
+  project  Project @relation(fields: [projectId], references: [id])
+  projectId String @unique
+}
 
-model Circuit{
-id          String  @id @default(uuid())
-circuitName String @db.VarChar(100)
-projectId String @unique
-project  Project @relation(fields: [projectId],references: [id])
-node Json
-edges Json 
-suggestions String @db.VarChar(500)
-explaination String @db.VarChar(500)
-
+model Circuit {
+  id           String  @id @default(uuid())
+  circuitName  String  @db.VarChar(100)
+  projectId    String  @unique
+  project      Project @relation(fields: [projectId], references: [id])
+  node         Json
+  edges        Json
+  suggestions  String  @db.VarChar(500)
+  explaination String  @db.VarChar(500)
 }

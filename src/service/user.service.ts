@@ -11,10 +11,10 @@ export const comparePassword = async (inputPassword: string, hashedPassword: str
 };
 
 // 🔹 Create Access Token
-export const createAccessToken = (user: { id: string; name: string; email: string }): string => {
+export const createAccessToken = (user: { id: string; fullName: string; email: string }): string => {
     //@ts-ignore
   return jwt.sign(
-    { id: user.id, name: user.name, email: user.email },
+    { id: user.id, fullName: user.fullName, email: user.email },
     process.env.ACCESS_TOKEN_SECRET as string,
     { expiresIn: process.env.ACCESS_TOKEN_EXPIRY as string }
   );
