@@ -10,4 +10,6 @@ export const createProjectSchema = z.object({
         .max(500, "Explanation must not exceed 500 characters")
 });
 
-export const projectShareSchema=z.string({required_error:"project id is required"});
+export const projectShareSchema= z.object({
+    projectId: z.string({"required_error":"project id is required"}),
+  });

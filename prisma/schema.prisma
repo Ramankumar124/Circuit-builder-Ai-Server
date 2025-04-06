@@ -54,7 +54,6 @@ model Circuit {
   projectId    String  @unique
   project      Project @relation(fields: [projectId], references: [id])
   node         Json
-  edges        Json
-  suggestions  String  @db.VarChar(500)
+  edge        Json
   explaination String  @db.VarChar(500)
 }

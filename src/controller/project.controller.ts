@@ -7,15 +7,25 @@ import { ApiError } from "../utils/ApiError";
 export const createProject = asyncHandler(
   async (req: Request, res: Response, next: NextFunction) => {
     const { projectName, prompt, circuit } = req.body;
+console.log( circuit);
 
     if (!circuit) return next(new ApiError(400, "Circuit must be given"));
     const newProject = await prisma.project.create({
       data: {
         projectName,
         prompt,
-        circuit,
+        circuit:{
+          create:{
+            circuitName:circuit.circuitName,
+            edge:circuit.edge,
+            node:circuit.node,
+            explaination:circuit.explanation,
+          }
+        },
       },
     });
+    
+  if(!newProject)return next(new ApiError(400,"unable to save project"));
     res
       .status(200)
       .json(new ApiResponse(200, newProject, "Project created successfully"));
@@ -39,6 +49,8 @@ export const getAllProjects = asyncHandler(
         circuit: true,
       },
     });
+
+  if(!projects) next(new ApiError(404,"no project avaiable"));
     const totalProjects = await prisma.project.count({
       where: { userId },
     });

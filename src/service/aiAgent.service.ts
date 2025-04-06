@@ -17,17 +17,15 @@ async function generateCircuit(userPrompt:string, systemPrompt:string) {
 
 export default generateCircuit;
 // import OpenAI from "openai";
-// import { properties } from "../config/properties.js";
-// import { systemPrompt } from "../prompt/systemPrompt.js";
 
-// const DEEPSEEK_API_KEY = properties?.DEEPSEEK_API_KEY;
+// const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY;
 
 // const openai = new OpenAI({
 //   apiKey: DEEPSEEK_API_KEY,
 //       baseURL: 'https://api.deepseek.com'
 // });
 
-// async function generateCircuit(userPrompt) {
+// async function generateCircuit(userPrompt:string,systemPrompt:string) {
 //   try {
 //     const response = await openai.chat.completions.create({
 //       model: "deepseek-chat", // Replace with the actual DeepSeek model name

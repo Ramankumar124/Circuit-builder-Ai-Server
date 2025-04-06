@@ -7,7 +7,13 @@ import { ApiResponse } from "../utils/ApiResponse";
 
 export const createShareLink = asyncHandler(
   async (req: Request, res: Response, next: NextFunction) => {
-    const projectId = projectShareSchema.parse(req.body);
+    console.log("kuch to aya");
+    console.log("params", req.params);
+
+    const projectId = req.query?.projectId as string;
+    console.log(req.body);
+    console.log(projectId);
+
     const project = await prisma.project.findUnique({
       where: { id: projectId },
     });
@@ -23,9 +29,15 @@ export const createShareLink = asyncHandler(
       },
     });
     if (existingShare) {
-      return res.send({
-        shareableLink: `http://${process.env?.FRONTEND_URL}/shared/${existingShare.id}`,
-      });
+      return res
+        .status(201)
+        .json(
+          new ApiResponse(
+            201,
+            `${process.env.FRONTEND_URL}/shared/${existingShare.id}`,
+            "shareeable link sended"
+          )
+        );
     }
 
     const newShare = await prisma.share.create({
@@ -40,7 +52,7 @@ export const createShareLink = asyncHandler(
       .json(
         new ApiResponse(
           201,
-          `https://${process.env?.FRONTEND_URL}/shared/${newShare.id}`,
+          `${process.env.FRONTEND_URL}/shared/${newShare.id}`,
           "share link created"
         )
       );
@@ -57,7 +69,6 @@ export const getSharedProjectData = asyncHandler(
         project: {
           include: {
             circuit: true,
-            User: true,
           },
         },
       },

@@ -19,6 +19,8 @@ export const createCircuit = asyncHandler(async function (
   const { prompt } = promptSchema.parse(req.body);
   if (!prompt) return next(new ApiError(400, "User must enter the prompt"));
   const circuit = await generateCircuit(prompt, systemPrompt);
+  console.log(circuit);
+  
   res.status(201).json(new ApiResponse(201, circuit, "circuit Created"));
 });
 
@@ -26,6 +28,7 @@ export const createCircuit = asyncHandler(async function (
 export const enhancePrompt = asyncHandler(
   async (req: Request, res: Response, next: NextFunction) => {
       const { prompt } = req.body;
+      console.log("req ayi");
 
       if (!prompt) return next(new ApiError(400,"Prompt must not be Empty")) 
 

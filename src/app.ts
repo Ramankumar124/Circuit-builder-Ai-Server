@@ -45,7 +45,7 @@ const ALLOWED_ORIGINS: string[] = [
 
 app.use(
   cors({
-    origin: "*",
+    origin:ALLOWED_ORIGINS,
     credentials: true,
   })
 );
