@@ -7,13 +7,18 @@ import { ApiError } from "../utils/ApiError";
 export const createProject = asyncHandler(
   async (req: Request, res: Response, next: NextFunction) => {
     const { projectName, prompt, circuit } = req.body;
-console.log( circuit);
+
+//@ts-ignore
+    const {id:userId}=req.user;
 
     if (!circuit) return next(new ApiError(400, "Circuit must be given"));
+
+
     const newProject = await prisma.project.create({
       data: {
         projectName,
         prompt,
+        userId, 
         circuit:{
           create:{
             circuitName:circuit.circuitName,
@@ -39,7 +44,8 @@ export const getAllProjects = asyncHandler(
 
     const limit = Number(req.query.limit) || 5;
     const skip = (page - 1) * limit;
-    const userId = req.params?.id;
+        //@ts-ignore
+    const userId = req.user?.id;
 
     const projects = await prisma.project.findMany({
       where: { userId },
@@ -48,6 +54,7 @@ export const getAllProjects = asyncHandler(
       include: {
         circuit: true,
       },
+      
     });
 
   if(!projects) next(new ApiError(404,"no project avaiable"));

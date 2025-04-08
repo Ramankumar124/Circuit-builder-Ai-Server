@@ -37,23 +37,29 @@ model Project {
   prompt      String   @db.VarChar(255)
   circuit     Circuit?
   User        User?    @relation(fields: [userId], references: [id])
-  userId      String?
+  userId      String
   Share       Share[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 model Share {
-  id        String  @id @default(uuid())
-  isShared  Boolean @default(false)
-  project  Project @relation(fields: [projectId], references: [id])
-  projectId String @unique
+  id        String   @id @default(uuid())
+  isShared  Boolean  @default(false)
+  project   Project  @relation(fields: [projectId], references: [id])
+  projectId String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Circuit {
-  id           String  @id @default(uuid())
-  circuitName  String  @db.VarChar(100)
-  projectId    String  @unique
-  project      Project @relation(fields: [projectId], references: [id])
+  id           String   @id @default(uuid())
+  circuitName  String   @db.VarChar(100)
+  projectId    String   @unique
+  project      Project  @relation(fields: [projectId], references: [id])
   node         Json
-  edge        Json
-  explaination String  @db.VarChar(500)
+  edge         Json
+  explaination String   @db.VarChar(5000)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 }

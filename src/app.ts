@@ -12,6 +12,7 @@ import { authRoutes } from "./routes/user.route";
 import { projectRoutes } from "./routes/project.routes";
 import { ShareRoutes } from "./routes/share.routes.";
 import { circuitRoutes } from "./routes/circuit.routes";
+import { jwtVerify } from "./middleware/verify.middleware";
 
 const app: Express = express();
 
@@ -50,7 +51,7 @@ app.use(
   })
 );
 app.use("/api/v1/auth", authRoutes);
-app.use("/api/v1/project",projectRoutes);
+app.use("/api/v1/project",jwtVerify,projectRoutes);
 app.use("/api/v1/share",ShareRoutes);
 app.use("/api/v1/circuit",circuitRoutes);
 app.use(errorHandler);
