@@ -2,7 +2,6 @@ import { asyncHandler } from "../utils/Asynchandler";
 import { NextFunction, Request, Response } from "express";
 import prisma from "../database/prismaClient";
 import { ApiError } from "../utils/ApiError";
-import { projectShareSchema } from "../schema/projectSchema";
 import { ApiResponse } from "../utils/ApiResponse";
 
 export const createShareLink = asyncHandler(

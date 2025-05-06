@@ -11,7 +11,7 @@
     "skipLibCheck": true ,// Skip type checking of declaration files
     "resolveJsonModule": true
   },
-  "include": ["src/**/*.ts", "src/config/properties.js"],
+  "include": ["src/**/*.ts", "src/config/properties.ts"],
   "exclude": ["node_modules"],
   "lib": ["es2015"]
 }

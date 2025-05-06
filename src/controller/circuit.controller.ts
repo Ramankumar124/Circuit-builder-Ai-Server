@@ -3,7 +3,7 @@ import generateCircuit from "../service/aiAgent.service";
 import {
   systemPrompt,
   enhanceSystemPrompt,
-} from "../../src/prompt/systemPrompt";
+} from "../prompt/systemPrompt";
 import { asyncHandler } from "../utils/Asynchandler";
 import { NextFunction, Request, Response } from "express";
 import { promptSchema } from "../schema/promptSchema";

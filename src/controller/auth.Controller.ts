@@ -28,6 +28,23 @@ interface UserDataRequest extends Request {
   user?: { email: string };
 }
 
+const ACCESS_TOKEN_EXPIRY = 1000 * 60 * 60; // 1 hour in milliseconds
+const REFRESH_TOKEN_EXPIRY = 1000 * 60 * 60 * 24 * 10; // 10 days in milliseconds
+
+const accessTokenOptions = {
+  httpOnly: true,
+  secure: true,
+  sameSite: "none" as const,
+  maxAge: ACCESS_TOKEN_EXPIRY,
+};
+
+const refreshTokenOptions = {
+  httpOnly: true,
+  secure: true,
+  sameSite: "none" as const,
+  maxAge: REFRESH_TOKEN_EXPIRY,
+};
+
 const genrerateAccessAndRefreshToken = async (userId: string) => {
   try {
     const user = await prisma.user.findUnique({
@@ -38,6 +55,8 @@ const genrerateAccessAndRefreshToken = async (userId: string) => {
 
     const accessToken = await createAccessToken(user);
     const refreshToken = await createRefreshToken(user?.id);
+    console.log("refreh token genrerated", refreshToken);
+
     await prisma.user.update({
       where: { id: user.id },
       data: { refreshToken: refreshToken },
@@ -137,7 +156,7 @@ const registerUser = asyncHandler(async function (
     httpOnly: true,
     secure: true,
     sameSite: "none" as const,
-    maxAge: 1000 * 60 * 60,
+    maxAge: ACCESS_TOKEN_EXPIRY, // Use standard expiry for OTP verification
   };
 
   res
@@ -151,7 +170,7 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
     req.cookies.refreshToken || req.body.refreshToken;
 
   if (!incomingRefreshToken) {
-    throw new ApiError(401, "unauthorized request");
+    throw new ApiError(401, "unauthorized request no refresh token");
   }
 
   try {
@@ -161,35 +180,25 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
     );
 
     const user = await prisma.user.findUnique({
-      where: { id: decodedToken?._id },
+      where: { id: decodedToken?.id },
     });
 
     if (!user) {
-      throw new ApiError(401, "Invalid refresh token");
+      throw new ApiError(402, "Invalid refresh token");
     }
 
     if (incomingRefreshToken !== user?.refreshToken) {
-      throw new ApiError(401, "Refresh token is expired or used");
+      throw new ApiError(403, "Refresh token is expired or used");
     }
 
-    const accessOptions = {
-      httpOnly: true,
-      secure: false,
-      maxAge: 1000 * 60,
-    };
-    const refreshOptions = {
-      httpOnly: true,
-      secure: false,
-      maxAge: 1000 * 60 * 10,
-    };
     //@ts-ignore
-    const { accessToken, newRefreshToken } =
+    const { accessToken, refreshToken: newRefreshToken } =
       await genrerateAccessAndRefreshToken(user.id);
 
     return res
       .status(200)
-      .cookie("accessToken", accessToken, accessOptions)
-      .cookie("refreshToken", newRefreshToken, refreshOptions)
+      .cookie("accessToken", accessToken, accessTokenOptions)
+      .cookie("refreshToken", newRefreshToken, refreshTokenOptions)
       .json(
         new ApiResponse(
           200,
@@ -287,7 +296,7 @@ const resendEmail = asyncHandler(
       httpOnly: true,
       sameSite: "none",
       secure: true,
-      maxAge: 1000 * 60 * 60,
+      maxAge: ACCESS_TOKEN_EXPIRY, // Use standard access token expiry for OTP
     };
 
     res
@@ -346,21 +355,10 @@ const loginUser = asyncHandler(async function (
     return next(new ApiError(400, "Something went wrong while signing user"));
   }
 
-  const accessOptions = {
-    httpOnly: true,
-    secure: false,
-    maxAge: 1000 * 60 * 10,
-  };
-  const refreshOptions = {
-    httpOnly: true,
-    secure: true,
-    sameSite: "none" as const,
-    maxAge: 1000 * 60 * 60 * 24 * 10,
-  };
   return res
     .status(200)
-    .cookie("accessToken", accessToken, accessOptions)
-    .cookie("refreshToken", refreshToken, refreshOptions)
+    .cookie("accessToken", accessToken, accessTokenOptions)
+    .cookie("refreshToken", refreshToken, refreshTokenOptions)
     .json(new ApiResponse(200, logedInUser, "user signin Successfully"));
 });
 
@@ -425,7 +423,7 @@ const forgotPassword = asyncHandler(
     const option = {
       httpOnly: true,
       secure: true,
-      maxAge: 1000 * 60 * 60,
+      maxAge: ACCESS_TOKEN_EXPIRY, // Use standard access token expiry
     };
 
     return res
@@ -479,7 +477,7 @@ const verifyForgotPasswordOtp = asyncHandler(
       httpOnly: true,
       sameSite: "none" as const,
       secure: true,
-      maxAge: 1000 * 60 * 60,
+      maxAge: ACCESS_TOKEN_EXPIRY, // Use standard access token expiry
     };
     return res
       .status(201)
@@ -527,84 +525,7 @@ const resetPassword = asyncHandler(
       .json(new ApiResponse(201, {}, "Password changed successfully"));
   }
 );
-// const updateAvatar = asyncHandler(
-//   async (req: Request, res: Response, next: NextFunction) => {
-//     //@ts-ignore
-//     const user = await User.findById(req.user?._id);
 
-//     if (!user) {
-//       return next(new ApiError(404, "user not found"));
-//     }
-
-//     //@ts-ignore
-//     if (user.avatar.public_id !== "") {
-//       // @ts-ignore
-//       await deleteFromCloudinary(user?.avatar.public_id);
-//     } else {
-//       await User.findByIdAndUpdate(
-//         //@ts-ignore
-//         req.user?._id,
-//         {
-//           avatar: {
-//             url: "",
-//             public_id: "",
-//           },
-//         },
-//         {
-//           new: true,
-//         }
-//       );
-//     }
-
-//     const files = req.files as {
-//       [key: string]: Express.Multer.File[];
-//     };
-
-//     const localFilePath = files?.avatar[0].path;
-
-//     const uploadAvatar = await uploadToCloudinary(localFilePath);
-//     if (!uploadAvatar) {
-//       return next(new ApiError(400, "avatar upload failed"));
-//     }
-
-//     const updatedUser = await User.findByIdAndUpdate(
-//       //@ts-ignore
-//       req.user?._id,
-//       {
-//         avatar: {
-//           url: uploadAvatar?.url,
-//           public_id: uploadAvatar?.public_id,
-//         },
-//       },
-//       {
-//         new: true,
-//       }
-//     )
-//       .select("-password") // Exclude the password field
-//       .populate([
-//         {
-//           path: "contacts",
-//           select: "-password  -contacts",
-//         },
-//         {
-//           path: "friendRequest.sent", // Path to populate friendRequest.sent
-//           select: "-password -firebaseToken -contacts -friendRequest", // Fields to exclude or include
-//         },
-//         {
-//           path: "friendRequest.received", // If you want to populate received friend requests as well
-//           select: "-password -firebaseToken -contacts -friendRequest",
-//         },
-//       ]);
-
-//     if (!updatedUser) {
-//       return next(new ApiError(400, "avatar Update failed"));
-//     }
-
-//     return res
-//       .status(200)
-//       .json(new ApiResponse(200, updatedUser, "avatar update successfully"));
-//   }
-// );
 const userData = asyncHandler(
   async (req: UserDataRequest, res: Response, next: NextFunction) => {
     const user = await prisma.user.findUnique({

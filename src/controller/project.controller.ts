@@ -109,16 +109,19 @@ export const updateProject = asyncHandler(
       );
   }
 );
-
-
 export const deleteProject = asyncHandler(
   async (req: Request, res: Response, next: NextFunction) => {
-    const deletedProject = await prisma.project.delete({
-      where: { id: req.params.id },
-    });
-    if (!deletedProject) {
-      return next(new ApiError(404, "Project not found"));
-    }
-    res.status(200).json(new ApiResponse(200,{},"Project delted successfuly"));
+    const { id } = req.params;
+
+    // Delete in order: Share -> Circuit -> Project
+    await prisma.$transaction([
+      prisma.share.deleteMany({ where: { projectId: id } }),
+      prisma.circuit.deleteMany({ where: { projectId: id } }),
+      prisma.project.delete({ where: { id } }),
+    ]);
+
+    res.status(200).json(
+      new ApiResponse(200, {}, "Project and related data deleted successfully")
+    );
   }
 );
